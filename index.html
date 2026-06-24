@@ -90,7 +90,7 @@ window.DASH_CONFIG = {
 <div class="hdr">
   <div>
     <h1>Commercial Pipeline Dashboard</h1>
-    <div class="hdr-meta">B2C + B2B + B2G · All channels combined · 18 Jun 2026</div>
+    <div class="hdr-meta">B2C + B2B2G · All channels combined · 18 Jun 2026</div>
   </div>
   <span class="pill">Jun 2026</span>
 </div>
@@ -115,8 +115,7 @@ window.DASH_CONFIG = {
       <select id="urg-ch" onchange="renderUrgent()">
         <option value="">All channels</option>
         <option value="B2C">B2C — individual</option>
-        <option value="B2B">B2B — corporate</option>
-        <option value="B2G">B2G — government</option>
+        <option value="B2B2G">B2B2G — corporate/gov</option>
       </select>
       <label class="lbl"><input type="checkbox" id="chk-cash" onchange="renderUrgent()"> Cash only</label>
       <label class="lbl"><input type="checkbox" id="chk-dp" onchange="renderUrgent()"> DP received</label>
@@ -136,7 +135,7 @@ window.DASH_CONFIG = {
       <select id="large-month" onchange="renderLarge()"><option value="">All months</option></select>
       <select id="large-ch" onchange="renderLarge()">
         <option value="">All channels</option>
-        <option value="B2C">B2C</option><option value="B2B">B2B</option><option value="B2G">B2G</option>
+        <option value="B2C">B2C</option><option value="B2B2G">B2B2G</option>
       </select>
     </div>
     <div class="ov"><table>
@@ -187,7 +186,7 @@ window.DASH_CONFIG = {
     </div></div>
     <div id="gap-box"></div>
     <div class="ov" style="margin-top:1rem"><table>
-      <thead><tr><th>Month</th><th>Deals</th><th>Unweighted (IDR)</th><th>Weighted (IDR)</th><th>of which B2G</th><th>of which B2C/B2B</th><th>Gap to target</th></tr></thead>
+      <thead><tr><th>Month</th><th>Deals</th><th>Unweighted (IDR)</th><th>Weighted (IDR)</th><th>of which B2B2G</th><th>of which B2C</th><th>Gap to target</th></tr></thead>
       <tbody id="body-fc"></tbody>
     </table></div>
     <p style="font-size:10px;color:#aaa89f;margin-top:.5rem">Agrinas IDR 28B excluded from weighted forecast — price unvalidated.</p>
@@ -205,8 +204,7 @@ window.DASH_CONFIG = {
       <select id="pipe-ch" onchange="renderPipeline()">
         <option value="">All channels</option>
         <option value="B2C">B2C — individual</option>
-        <option value="B2B">B2B — corporate</option>
-        <option value="B2G">B2G — government</option>
+        <option value="B2B2G">B2B2G — corporate/gov</option>
       </select>
     </div>
     <div id="pipe-summary" style="font-size:11px;color:#888780;margin-bottom:.5rem"></div>
@@ -293,9 +291,11 @@ const paybadge = p => {
   return '<span class="badge bk">—</span>';
 };
 const chbadge = c => {
+  if(c==='B2B2G') return '<span class="badge bp">B2B2G</span>';
+  if(c==='B2C') return '<span class="badge bk">B2C</span>';
   if(c==='B2G') return '<span class="badge bp">B2G</span>';
   if(c==='B2B') return '<span class="badge ba">B2B</span>';
-  return '<span class="badge bk">B2C</span>';
+  return c?'<span class="badge bk">'+c+'</span>':'—';
 };
 const pbar = (s,col) => `<span class="pbar"><span class="pfill" style="width:${s}%;background:${col}"></span></span><span class="pbnum">${s}%</span>`;
 const flagbadge = p => p.flagged?'<span class="badge br" title="Price unvalidated"> !</span>':'';
@@ -323,7 +323,7 @@ function renderMetrics(){
   document.getElementById('metrics').innerHTML = `
     <div class="metric tg"><div class="mlbl">Revenue MTD (Jun)</div><div class="mval">${D.mtd_rev>0?M(D.mtd_rev):'—'}</div><div class="msub">${D.mtd_qty>0?D.mtd_qty+' installed':'No invoices yet'}</div></div>
     <div class="metric ta"><div class="mlbl">Revenue YTD</div><div class="mval">${M(ytd)}</div><div class="msub">${Object.values(D.monthly_qty).reduce((a,b)=>a+b,0)} units</div></div>
-    <div class="metric tb"><div class="mlbl">Total pipeline</div><div class="mval">${M(D.total_pipeline)}</div><div class="msub">B2C ${M(D.total_cso_pipe)} · B2G ${M(D.total_b2b2g_pipe)}</div></div>
+    <div class="metric tb"><div class="mlbl">Total pipeline</div><div class="mval">${M(D.total_pipeline)}</div><div class="msub">CSO ${M(D.total_cso_pipe)} · B2B2G ${M(D.total_b2b2g_pipe)}</div></div>
     <div class="metric tr"><div class="mlbl">Urgent (Jun, 50%+)</div><div class="mval">${urgCnt}</div><div class="msub">${M(urgVal)}</div></div>
     <div class="metric tp"><div class="mlbl">Jun weighted forecast</div><div class="mval">${M(juneFc)}</div><div class="msub">set target to see gap</div></div>
   `;
@@ -438,8 +438,8 @@ function renderForecast(){
   if(fcChart) fcChart.destroy();
   const ds=[
     {label:'Actual',data:actuals,backgroundColor:'#1D9E75',borderRadius:3,order:3},
-    {label:'Forecast B2G',data:wB2G,backgroundColor:'rgba(83,74,183,0.6)',borderRadius:3,order:4},
-    {label:'Forecast B2C/B2B',data:wB2C,backgroundColor:'rgba(186,117,23,0.5)',borderRadius:3,order:5},
+    {label:'Forecast B2B2G',data:wB2G,backgroundColor:'rgba(83,74,183,0.6)',borderRadius:3,order:4},
+    {label:'Forecast B2C',data:wB2C,backgroundColor:'rgba(186,117,23,0.5)',borderRadius:3,order:5},
     {label:'Forecast social',data:wSoc,backgroundColor:'rgba(83,130,200,0.4)',borderRadius:3,order:6},
   ];
   if(tLine) ds.push({label:'Target',data:tLine,type:'line',borderColor:'#E24B4A',borderDash:[4,3],borderWidth:2,pointRadius:0,order:1});
@@ -506,7 +506,7 @@ function renderTrends(){
   var gray='#aaa89f',tickFont={size:11};
   var baseOpts=function(yLabel){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:gray,font:tickFont}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:gray,font:tickFont,callback:function(v){return yLabel?v+'M':v;}}}}};};
   if(ca) ch.actuals=new Chart(ca,{type:'bar',data:{labels:months,datasets:[{label:'Revenue',backgroundColor:'#1D9E75',borderRadius:4,data:months.map(function(m){return Math.round((D.monthly_rev[m]||0)/1e6);})}]},options:baseOpts(true)});
-  if(cc) ch.channel=new Chart(cc,{type:'bar',data:{labels:months,datasets:[{label:'B2C',backgroundColor:'#1D9E75',data:months.map(function(m){return Math.round(((D.monthly_b2c_rev||{})[m]||0)/1e6);})},{label:'B2B',backgroundColor:'#BA7517',data:months.map(function(m){return Math.round(((D.monthly_b2b_rev||{})[m]||0)/1e6);})},{label:'B2G',backgroundColor:'#378ADD',data:months.map(function(m){return Math.round(((D.monthly_b2g_rev||{})[m]||0)/1e6);})}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:tickFont,boxWidth:10}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:gray,font:tickFont}},y:{stacked:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:gray,font:tickFont,callback:function(v){return v+'M';}}}}}});
+  if(cc) ch.channel=new Chart(cc,{type:'bar',data:{labels:months,datasets:[{label:'B2C',backgroundColor:'#1D9E75',data:months.map(function(m){return Math.round(((D.monthly_b2c_rev||{})[m]||0)/1e6);})},{label:'B2B2G',backgroundColor:'#534AB7',data:months.map(function(m){return Math.round(((D.monthly_b2b2g_rev||{})[m]||0)/1e6);})}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:tickFont,boxWidth:10}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:gray,font:tickFont}},y:{stacked:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:gray,font:tickFont,callback:function(v){return v+'M';}}}}}});
   if(cf) ch.forecast=new Chart(cf,{type:'line',data:{labels:fmonths,datasets:[{label:'Weighted',borderColor:'#534AB7',backgroundColor:'rgba(83,74,183,0.1)',fill:true,tension:0.3,data:fmonths.map(function(m){return Math.round(((D.forecast||{})[m]||0)/1e6);})}]},options:Object.assign(baseOpts(true),{plugins:{legend:{display:false}}})});
   if(cs){var sd=D.score_dist||{};ch.scores=new Chart(cs,{type:'doughnut',data:{labels:Object.keys(sd),datasets:[{data:Object.values(sd),backgroundColor:['#E24B4A','#BA7517','#1D9E75','#378ADD','#534AB7','#aaa89f']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:tickFont,boxWidth:12}}}}});}
 }
