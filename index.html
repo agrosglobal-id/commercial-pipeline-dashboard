@@ -112,6 +112,7 @@ window.DASH_CONFIG = {
   <div class="sec">
     <div class="sechdr"><span class="sectitle">Urgent — closing June, 25%+ confidence</span></div>
     <div class="trow">
+      <select id="urg-pic" onchange="renderUrgent()"><option value="">All PICs</option></select>
       <select id="urg-ch" onchange="renderUrgent()">
         <option value="">All channels</option>
         <option value="B2C">B2C — individual</option>
@@ -132,6 +133,7 @@ window.DASH_CONFIG = {
   <div class="sec">
     <div class="sechdr"><span class="sectitle">Large opportunities — 30M+ IDR</span></div>
     <div class="trow">
+      <select id="large-pic" onchange="renderLarge()"><option value="">All PICs</option></select>
       <select id="large-month" onchange="renderLarge()"><option value="">All months</option></select>
       <select id="large-ch" onchange="renderLarge()">
         <option value="">All channels</option>
@@ -150,6 +152,7 @@ window.DASH_CONFIG = {
 <div id="panel-stale" class="panel">
   <div class="sec">
     <div class="sechdr"><span class="sectitle">B2B2G deals — no update in 21+ days</span></div>
+    <div class="trow"><select id="stale-pic" onchange="renderStale()"><option value="">All PICs</option></select></div>
     <div class="notebox" id="stale-note"></div>
     <div class="ov"><table>
       <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:#888780;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:0.5px solid #e0dfd8" data-sd="1" onclick="sortByDate('body-stale',this)">Input Date ↕</th><th>Deal</th><th>Regency</th><th>Units</th><th>Value (IDR)</th><th>Stage</th><th>Days stale</th><th>Est. close</th></tr></thead>
@@ -163,6 +166,7 @@ window.DASH_CONFIG = {
 <div id="panel-outer" class="panel">
   <div class="sec">
     <div class="sechdr"><span class="sectitle">Outer island warm leads</span></div>
+    <div class="trow"><select id="outer-pic" onchange="renderOuter()"><option value="">All PICs</option></select></div>
     <div class="notebox">Inbound leads from outside Java. Most have no PIC assigned. Requires approval before committing resources.</div>
     <div class="ov"><table>
       <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:#888780;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:0.5px solid #e0dfd8" data-sd="1" onclick="sortByDate('body-outer',this)">Input Date ↕</th><th>Customer</th><th>Province</th><th>Kabupaten</th><th>Product interest</th><th>Progress</th><th>Land (ha)</th><th>PIC assigned</th></tr></thead>
@@ -332,10 +336,12 @@ function renderMetrics(){
 // ── URGENT ────────────────────────────────────────────────────────────────────
 function renderUrgent(){
   const ch = document.getElementById('urg-ch').value;
+  const pic = document.getElementById('urg-pic').value;
   const cashOnly = document.getElementById('chk-cash').checked;
   const dpOnly = document.getElementById('chk-dp').checked;
   let rows = [...D.urgent];
   if(ch) rows=rows.filter(r=>r.channel===ch);
+  if(pic) rows=rows.filter(r=>(r.pic||r.am)===pic);
   if(cashOnly) rows=rows.filter(r=>r.payment==='Cash');
   if(dpOnly) rows=rows.filter(r=>r.dp);
   rows.sort((a,b)=>b.score-a.score||b.rev-a.rev);
@@ -366,9 +372,11 @@ function renderUrgent(){
 function renderLarge(){
   const mo = document.getElementById('large-month').value;
   const ch = document.getElementById('large-ch').value;
+  const pic = document.getElementById('large-pic').value;
   let rows = [...D.large];
   if(mo) rows=rows.filter(r=>r.close_month===mo);
   if(ch) rows=rows.filter(r=>r.channel===ch);
+  if(pic) rows=rows.filter(r=>(r.pic||r.am)===pic);
   rows.sort((a,b)=>b.rev-a.rev);
   const shown = showState.large ? rows : rows.slice(0,LIMIT);
   document.getElementById('body-large').innerHTML = shown.map(r=>`<tr class="hi3">
@@ -389,7 +397,9 @@ function renderLarge(){
 
 // ── STALE ─────────────────────────────────────────────────────────────────────
 function renderStale(){
-  const rows = D.stale||[];
+  const pic = document.getElementById('stale-pic').value;
+  let rows = D.stale||[];
+  if(pic) rows=rows.filter(r=>(r.pic||r.am)===pic);
   document.getElementById('stale-note').textContent=`${rows.length} B2B2G deals with no recorded update in 21+ days. Status unknown until PIC confirms.`;
   const shown = showState.stale?rows:rows.slice(0,LIMIT);
   document.getElementById('body-stale').innerHTML=shown.map(r=>`<tr>
@@ -409,7 +419,9 @@ function renderStale(){
 
 // ── OUTER ISLAND ──────────────────────────────────────────────────────────────
 function renderOuter(){
-  const rows=D.outer_island||[];
+  const pic = document.getElementById('outer-pic').value;
+  let rows=D.outer_island||[];
+  if(pic) rows=rows.filter(r=>(r.pic||r.am)===pic);
   const shown=showState.outer?rows:rows.slice(0,LIMIT);
   document.getElementById('body-outer').innerHTML=shown.map(r=>`<tr>
     <td data-d="${r.entry_date||''}" style="white-space:nowrap;font-size:11px;color:#5f5e5a">${fmtDate(r.entry_date)}${r.entry_date_label==='Last Interaction'?'<br><span style="color:#aaa;font-size:10px">Last interaction</span>':''}</td>
@@ -535,7 +547,13 @@ function populateDropdowns(){
   const pics=[...new Set(D.pipeline.map(p=>p.pic||p.am).filter(a=>a&&a!=='Unassigned'))].sort();
   const mos=[...new Set(D.pipeline.map(p=>p.close_month).filter(m=>m))].sort();
   const lmos=[...new Set(D.large.map(p=>p.close_month).filter(m=>m))].sort();
-  pics.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;document.getElementById('pipe-pic').appendChild(o);});
+  pics.forEach(a=>{
+    const o=document.createElement('option');o.value=a;o.textContent=a;
+    ['pipe-pic','urg-pic','large-pic','stale-pic','outer-pic'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.appendChild(o.cloneNode(true));
+    });
+  });
   mos.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;document.getElementById('pipe-month').appendChild(o);});
   lmos.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;document.getElementById('large-month').appendChild(o);});
 }
