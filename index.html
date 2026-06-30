@@ -110,6 +110,22 @@ window.DASH_CONFIG = {
 <!-- FOCUS NOW -->
 <div id="panel-focus" class="panel on">
   <div class="sec">
+    <div class="sechdr"><span class="sectitle">Sosmed — sudah diserahkan</span></div>
+    <div class="trow">
+      <select id="soc-tgl" multiple size="1" onchange="renderSosmedHandover()" style="min-width:220px"></select>
+      <span style="font-size:11px;color:#888780;">Ctrl/Cmd-click to select multiple dates</span>
+    </div>
+    <div class="ov"><table>
+      <thead><tr>
+        <th style="cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:#888780;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:0.5px solid #e0dfd8" data-sd="1" onclick="sortByDate('body-soc-handover',this)">Tgl Serah ↕</th>
+        <th>PIC Input</th><th>Area</th><th>Confirm PIC</th><th>Customer</th><th>Lokasi</th>
+        <th>Pompa</th><th>Status</th><th>Hasil</th><th>Revenue / Closing</th><th>Tantangan</th>
+      </tr></thead>
+      <tbody id="body-soc-handover"></tbody>
+    </table></div>
+    <button class="show-more" id="btn-soc-handover" onclick="toggleMore('soc-handover')">Show more</button>
+  </div>
+  <div class="sec">
     <div class="sechdr"><span class="sectitle">Urgent — closing June, 25%+ confidence</span></div>
     <div class="trow">
       <select id="urg-pic" onchange="renderUrgent()"><option value="">All PICs</option></select>
@@ -305,7 +321,7 @@ const pbar = (s,col) => `<span class="pbar"><span class="pfill" style="width:${s
 const flagbadge = p => p.flagged?'<span class="badge br" title="Price unvalidated"> !</span>':'';
 
 // ── SHOW MORE LOGIC ────────────────────────────────────────────────────────────
-const showState = {urgent:false,large:false,stale:false,outer:false,pipe:false};
+const showState = {urgent:false,large:false,stale:false,outer:false,pipe:false,'soc-handover':false};
 function toggleMore(key){
   showState[key]=!showState[key];
   const btn = document.getElementById('btn-'+key);
@@ -315,6 +331,7 @@ function toggleMore(key){
   if(key==='stale') renderStale();
   if(key==='outer') renderOuter();
   if(key==='pipe') renderPipeline();
+  if(key==='soc-handover') renderSosmedHandover();
 }
 const LIMIT = 10;
 
@@ -334,6 +351,31 @@ function renderMetrics(){
 }
 
 // ── URGENT ────────────────────────────────────────────────────────────────────
+// ── SOSMED HANDOVER ───────────────────────────────────────────────────────
+function renderSosmedHandover(){
+  const sel = document.getElementById('soc-tgl');
+  const picked = [...sel.selectedOptions].map(o=>o.value).filter(v=>v);
+  let rows = [...(D.sosmed_handover||[])];
+  if(picked.length) rows = rows.filter(r=>picked.includes(r.tgl_serah));
+  const shown = showState['soc-handover'] ? rows : rows.slice(0,LIMIT);
+  document.getElementById('body-soc-handover').innerHTML = shown.map(r=>`<tr>
+    <td data-d="${r.tgl_serah||''}" style="white-space:nowrap;font-size:11px;color:#5f5e5a">${fmtDate(r.tgl_serah)}</td>
+    <td>${r.pic_input||'—'}</td>
+    <td>${r.area_lead||'—'}</td>
+    <td>${r.confirm_pic||'—'}</td>
+    <td><div class="dn">${r.customer||'—'}</div></td>
+    <td>${r.lokasi||'—'}</td>
+    <td>${r.pompa||'—'}</td>
+    <td>${r.status||'—'}</td>
+    <td>${r.hasil||'—'}</td>
+    <td>${r.rev>0?M(r.rev):'—'}<br><span style="color:#aaa;font-size:10px">${r.close_month||'—'}</span></td>
+    <td style="max-width:220px">${r.tantangan||'—'}</td>
+  </tr>`).join('');
+  const btn=document.getElementById('btn-soc-handover');
+  btn.style.display=rows.length>LIMIT?'block':'none';
+  if(rows.length>LIMIT) btn.textContent=showState['soc-handover']?'Show less':`Show ${rows.length-LIMIT} more`;
+}
+
 function renderUrgent(){
   const ch = document.getElementById('urg-ch').value;
   const pic = document.getElementById('urg-pic').value;
@@ -556,6 +598,12 @@ function populateDropdowns(){
   });
   mos.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;document.getElementById('pipe-month').appendChild(o);});
   lmos.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;document.getElementById('large-month').appendChild(o);});
+  const tglSel = document.getElementById('soc-tgl');
+  if(tglSel){
+    tglSel.innerHTML = '';
+    const tgls=[...new Set((D.sosmed_handover||[]).map(r=>r.tgl_serah).filter(t=>t))].sort().reverse();
+    tgls.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=fmtDate(t);tglSel.appendChild(o);});
+  }
 }
 
 // ── TAB SWITCH ────────────────────────────────────────────────────────────────
@@ -573,6 +621,7 @@ function switchTab(id,el){
 function renderAll(){
   renderMetrics();
   populateDropdowns();
+  renderSosmedHandover();
   renderUrgent();
   renderLarge();
   renderStale();
