@@ -814,8 +814,10 @@ function fmtDate(d){if(!d||d==='None'||d===''||d===null)return '—';try{var p=d
       D = data;
       hideBanner();
       renderAll();
-      var when = (D._fetched_at || D.as_of || '').replace('T',' ');
-      setUpdated('Terakhir diperbarui: ' + when + ' WIB', false);
+      var parts = [];
+      if(D._source_modified) parts.push('Diperbarui: ' + D._source_modified);
+      if(D._latest_lead) parts.push('Lead terbaru: ' + D._latest_lead);
+      setUpdated(parts.length ? parts.join(' · ') : 'Data dimuat', false);
       if(D._warnings && D._warnings.length){ updatedEl.title = D._warnings.join('\n'); }
     } catch(e){ setUpdated('Refresh gagal: ' + (e.message||e), true); }
     finally { btnRefresh.disabled = false; btnRefresh.textContent = old; }
